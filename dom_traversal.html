@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DOM Traversal Application</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+  }
+  header {
+    margin-bottom: 20px;
+    border-bottom: 2px solid #000;
+    padding-bottom: 10px;
+  }
+  header h1 {
+    margin: 0 0 10px 0;
+  }
+  #tree {
+    margin-bottom: 20px;
+  }
+  .node {
+    padding: 10px;
+    margin: 5px;
+    border: 1px solid #ccc;
+    display: inline-block;
+    cursor: pointer;
+    user-select: none;
+    border-radius: 6px;
+    transition: background-color 0.3s ease;
+  }
+  .grandparent {
+    background-color: #f0e68c; /* Light yellow */
+  }
+  .parent {
+    background-color: #add8e6; /* Light blue */
+  }
+  .child {
+    background-color: #90ee90; /* Light green */
+  }
+  .highlight {
+    background-color: #ffcccb !important; /* Light red */
+  }
+  .controls {
+    margin-top: 20px;
+  }
+  button {
+    margin-right: 10px;
+    padding: 10px 15px;
+    font-size: 16px;
+    border: none;
+    background-color: #4caf50;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.25s ease;
+  }
+  button:hover {
+    background-color: #45a049;
+  }
+  /* Vertical layout for nested nodes */
+  #tree > .grandparent {
+    display: block;
+  }
+  .grandparent > .parent {
+    display: inline-block;
+    vertical-align: top;
+  }
+  .parent > .child {
+    display: block;
+    margin-left: 15px;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Profile Information</h1>
+  <p><strong>Complete Name:</strong> John Doe</p>
+  <p><strong>Sex:</strong> Male</p>
+  <p><strong>Address:</strong> 123 Main St, Cityville</p>
+  <p><strong>Course, Year, and Section:</strong> BS Computer Science, 3rd Year, Section A</p>
+  <p><strong>Name of School:</strong> University of Example</p>
+  <p><strong>Semester and Academic Year:</strong> 1st Semester, 2023-2024</p>
+  <p><strong>Subject Code and Title:</strong> CS101 - Introduction to Programming</p>
+  <p><strong>Name of Subject Instructor:</strong> Dr. Smith</p>
+</header>
+<main>
+  <div id="tree">
+    <div class="node grandparent" onclick="selectNode(event)">Grandparent
+      <div class="node parent" onclick="selectNode(event)">Parent 1
+        <div class="node child" onclick="selectNode(event)">Child 1.1</div>
+        <div class="node child" onclick="selectNode(event)">Child 1.2</div>
+      </div>
+      <div class="node parent" onclick="selectNode(event)">Parent 2
+        <div class="node child" onclick="selectNode(event)">Child 2.1</div>
+        <div class="node child" onclick="selectNode(event)">Child 2.2</div>
+      </div>
+    </div>
+  </div>
+  <div class="controls">
+    <button onclick="traverseDown()">Traverse Down</button>
+    <button onclick="traverseUp()">Traverse Up</button>
+    <button onclick="traverseNextSibling()">Next Sibling</button>
+    <button onclick="traversePreviousSibling()">Previous Sibling</button>
+    <button onclick="addChild()">Add Child</button>
+    <button onclick="deleteCurrent()">Delete Current</button>
+  </div>
+</main>
+<script>
+  let selectedNode = null;
+
+  // Remove highlight from a node
+  function removeHighlight(node) {
+    if (node) node.classList.remove('highlight');
+  }
+
+  // Add highlight to a node
+  function addHighlight(node) {
+    if (node) node.classList.add('highlight');
+  }
+
+  // Function to select a node on click
+  function selectNode(event) {
+    event.stopPropagation(); // Prevent bubbling to parents
+    if (selectedNode) {
+      removeHighlight(selectedNode);
+    }
+    selectedNode = event.currentTarget;
+    addHighlight(selectedNode);
+  }
+
+  // Helper: Only accept elements with .node class
+  function isNode(element) {
+    return element && element.classList && element.classList.contains('node');
+  }
+
+  // Traverse Down: Select first direct child node
+  function traverseDown() {
+    if (!selectedNode) {
+      alert('Please select a node first.');
+      return;
+    }
+    // first direct child with class 'node', only among immediate children (not descendants)
+    const children = Array.from(selectedNode.children).filter(isNode);
+    if (children.length === 0) {
+      alert('No children to traverse down to.');
+      return;
+    }
+    updateSelection(children[0]);
+  }
+
+  // Traverse Up: Select parent node if exists and is .node
+  function traverseUp() {
+    if (!selectedNode) {
+      alert('Please select a node first.');
+      return;
+    }
+    let parent = selectedNode.parentElement;
+    // Traverse up until the parent that is also a .node (or none)
+    while (parent && !isNode(parent)) {
+      parent = parent.parentElement;
+    }
+    if (!parent) {
+      alert('No parent node to traverse up to.');
+      return;
+    }
+    updateSelection(parent);
+  }
+
+  // Helper to find next sibling with the same main class type (grandparent, parent, or child)
+  function traverseSibling(direction) {
+    if (!selectedNode) {
+      alert('Please select a node first.');
+      return;
+    }
+    const classList = ['grandparent', 'parent', 'child'];
+    let nodeType = null;
+    for (const type of classList) {
+      if (selectedNode.classList.contains(type)) {
+        nodeType = type;
+        break;
+      }
+    }
+    if (!nodeType) {
+      alert('Selected node is of unknown type.');
+      return;
+    }
+
+    let sibling = null;
+    if (direction === 'next') {
+      sibling = selectedNode.nextElementSibling;
+      while (sibling && !sibling.classList.contains(nodeType)) {
+        sibling = sibling.nextElementSibling;
+      }
+    } else if (direction === 'prev') {
+      sibling = selectedNode.previousElementSibling;
+      while (sibling && !sibling.classList.contains(nodeType)) {
+        sibling = sibling.previousElementSibling;
+      }
+    }
+
+    if (!sibling) {
+      alert(`No ${direction === 'next' ? 'next' : 'previous'} sibling to traverse to.`);
+      return;
+    }
+    updateSelection(sibling);
+  }
+
+  // Traverse Next Sibling (same hierarchy level and type)
+  function traverseNextSibling() {
+    traverseSibling('next');
+  }
+
+  // Traverse Previous Sibling (same hierarchy level and type)
+  function traversePreviousSibling() {
+    traverseSibling('prev');
+  }
+
+  // Update the selection and highlight
+  function updateSelection(newNode) {
+    if (selectedNode) removeHighlight(selectedNode);
+    selectedNode = newNode;
+    addHighlight(selectedNode);
+  }
+
+  // Add Child according to the selected node type
+  function addChild() {
+    if (!selectedNode) {
+      alert('Please select a node first.');
+      return;
+    }
+
+    if (selectedNode.classList.contains('grandparent')) {
+      // Add a new parent node with two children
+      const existingParents = Array.from(selectedNode.children).filter(child => child.classList && child.classList.contains('parent'));
+      const nextParentNum = existingParents.length + 1;
+
+      const parentDiv = document.createElement('div');
+      parentDiv.classList.add('node', 'parent');
+      parentDiv.textContent = `Parent ${nextParentNum}`;
+      parentDiv.addEventListener('click', selectNode);
+
+      // Add two children to new parent
+      for (let i = 1; i <= 2; i++) {
+        const childDiv = document.createElement('div');
+        childDiv.classList.add('node', 'child');
+        childDiv.textContent = `Child ${nextParentNum}.${i}`;
+        childDiv.addEventListener('click', selectNode);
+        parentDiv.appendChild(childDiv);
+      }
+      selectedNode.appendChild(parentDiv);
+      updateSelection(parentDiv);
+
+    } else if (selectedNode.classList.contains('parent')) {
+      // Add one new child node
+      const children = Array.from(selectedNode.children).filter(child => child.classList && child.classList.contains('child'));
+      const childCount = children.length + 1;
+
+      const newChild = document.createElement('div');
+      newChild.classList.add('node', 'child');
+
+      // Try to derive parent's number from text e.g., "Parent 2"
+      let parentNum = '?';
+      const parentText = selectedNode.textContent;
+      const match = parentText.match(/Parent\s(\d+)/);
+      if (match && match[1]) parentNum = match[1];
+
+      newChild.textContent = `Child ${parentNum}.${childCount}`;
+      newChild.addEventListener('click', selectNode);
+      selectedNode.appendChild(newChild);
+      updateSelection(newChild);
+
+    } else if (selectedNode.classList.contains('child')) {
+      alert('Cannot add child nodes to a child node.');
+    } else {
+      alert('Unknown node type.');
+    }
+  }
+
+  // Delete the currently selected node with restrictions
+  function deleteCurrent() {
+    if (!selectedNode) {
+      alert('Please select a node first.');
+      return;
+    }
+    if (selectedNode.classList.contains('grandparent')) {
+      alert('Cannot delete the grandparent node.');
+      return;
+    }
+    const parent = selectedNode.parentElement;
+    if (!parent) {
+      alert('Selected node has no parent - cannot delete.');
+      return;
+    }
+    parent.removeChild(selectedNode);
+    selectedNode = null;
+  }
+
+  // On page load, auto select grandparent node
+  window.onload = () => {
+    const grandparent = document.querySelector('.grandparent');
+    if (grandparent) {
+      updateSelection(grandparent);
+    }
+  };
+</script>
+</body>
+</html>
+</content>
+</create_file>
